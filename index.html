@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valley Kebab Shop – Admin Task Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1f4037, #99f2c8);
+      padding: 20px;
+    }
+    header { text-align: center; color: #fff; margin-bottom: 20px; }
+    .container { max-width: 1100px; margin: auto; }
+
+    .panel {
+      background: #fff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+
+    .panel h2 { color: #1f4037; margin-bottom: 10px; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+    }
+
+    select, input, button {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 14px;
+    }
+
+    button {
+      background: #1f4037;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    button:hover { background: #145a45; transform: scale(1.03); }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .day-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .day-card h3 { text-align: center; color: #1f4037; margin-bottom: 10px; }
+
+    .task {
+      background: #f4fdf9;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .task.done { background: #d1fae5; text-decoration: line-through; }
+    .task.pending { background: #fff3cd; }
+
+    .task-actions button {
+      font-size: 11px;
+      padding: 5px 8px;
+      margin-left: 4px;
+      border-radius: 6px;
+    }
+
+    .done-btn { background: #16a34a; }
+    .pending-btn { background: #d97706; }
+    .delete-btn { background: #dc2626; }
+
+    footer { text-align: center; color: #eee; margin-top: 20px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Valley Kebab Shop</h1>
+    <p>Admin & Staff Task Management System</p>
+  </header>
+
+  <div class="container">
+    <!-- Login -->
+    <div class="panel" id="loginPanel">
+      <h2>Admin Login</h2>
+      <input type="password" id="adminPass" placeholder="Enter admin password" />
+      <button onclick="login()">Login</button>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="panel" id="adminPanel" style="display:none;">
+      <h2>Admin Control</h2>
+      <div class="controls">
+        <select id="day">
+          <option value="">Select Day</option>
+          <option>Monday</option>
+          <option>Tuesday</option>
+          <option>Wednesday</option>
+          <option>Thursday</option>
+          <option>Friday</option>
+          <option>Saturday</option>
+          <option>Sunday</option>
+        </select>
+        <input type="text" id="taskInput" placeholder="Task name" />
+        <input type="text" id="userInput" placeholder="Assign to staff" />
+        <button onclick="addTask()">Add Task</button>
+      </div>
+    </div>
+
+    <!-- Days -->
+    <div class="days" id="days"></div>
+  </div>
+
+  <footer>© Valley Kebab Shop | GitHub Pages Ready</footer>
+
+  <script>
+    const ADMIN_PASSWORD = "Valley@123"; // CHANGE THIS
+    const daysArr = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const daysContainer = document.getElementById('days');
+    let data = JSON.parse(localStorage.getItem('tasks')) || {};
+
+    function login() {
+      const pass = document.getElementById('adminPass').value;
+      if (pass === ADMIN_PASSWORD) {
+        sessionStorage.setItem('admin', 'true');
+        document.getElementById('loginPanel').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+      } else alert('Incorrect password');
+    }
+
+    function isAdmin() {
+      return sessionStorage.getItem('admin') === 'true';
+    }
+
+    function init() {
+      if (isAdmin()) {
+        document.getElementById('loginPanel').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+      }
+      daysArr.forEach(d => {
+        if (!data[d]) data[d] = [];
+        renderDay(d);
+      });
+    }
+
+    function renderDay(day) {
+      let card = document.getElementById(day);
+      if (!card) {
+        card = document.createElement('div');
+        card.className = 'day-card';
+        card.id = day;
+        card.innerHTML = `<h3>${day}</h3><div class="task-list"></div>`;
+        daysContainer.appendChild(card);
+      }
+      const list = card.querySelector('.task-list');
+      list.innerHTML = '';
+
+      data[day].forEach((t, i) => {
+        const el = document.createElement('div');
+        el.className = `task ${t.status}`;
+        el.innerHTML = `
+          <span>${t.name}<br><small>👤 ${t.user}</small></span>
+          <div class="task-actions">
+            <button class="done-btn" onclick="updateStatus('${day}',${i},'done')">Done</button>
+            <button class="pending-btn" onclick="updateStatus('${day}',${i},'pending')">Pending</button>
+            ${isAdmin() ? `<button class="delete-btn" onclick="deleteTask('${day}',${i})">X</button>` : ''}
+          </div>`;
+        list.appendChild(el);
+      });
+    }
+
+    function addTask() {
+      const day = document.getElementById('day').value;
+      const task = document.getElementById('taskInput').value;
+      const user = document.getElementById('userInput').value || 'Unassigned';
+      if (!day || !task) return alert('Day and task required');
+      data[day].push({ name: task, user, status: 'pending' });
+      save(); renderDay(day);
+      document.getElementById('taskInput').value = '';
+      document.getElementById('userInput').value = '';
+    }
+
+    function updateStatus(day, i, status) {
+      data[day][i].status = status; save(); renderDay(day);
+    }
+
+    function deleteTask(day, i) {
+      data[day].splice(i, 1); save(); renderDay(day);
+    }
+
+    function save() {
+      localStorage.setItem('tasks', JSON.stringify(data));
+    }
+
+    init();
+  </script>
+</body>
+</html>
